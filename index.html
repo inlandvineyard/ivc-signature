@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inland Vineyard Email Signature Generator</title>
+  <style>
+    :root {
+      --ivc: #0088a8;
+      --bg: #f6f8fa;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d8e1e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      background: linear-gradient(135deg, #006f86, #0088a8);
+      color: white;
+      padding: 28px 20px;
+    }
+    header .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+    header p { margin: 6px 0 0; opacity: .95; }
+    main {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 20px 40px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 22px;
+    }
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+      padding: 20px;
+    }
+    label {
+      display: block;
+      font-weight: 700;
+      margin: 14px 0 6px;
+      color: #374151;
+      font-size: 14px;
+    }
+    input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 15px;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--ivc);
+      box-shadow: 0 0 0 3px rgba(0,136,168,.12);
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .primary { background: var(--ivc); color: white; width: 100%; margin-top: 18px; }
+    .secondary { background: #e6f5f8; color: #006f86; border: 1px solid #bfe5ec; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .preview-box {
+      background: white;
+      border: 1px dashed #b9c8d2;
+      border-radius: 12px;
+      padding: 24px;
+      overflow-x: auto;
+    }
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      resize: vertical;
+      margin-top: 14px;
+    }
+    h2 { margin: 0 0 12px; color: #07576a; }
+    .note {
+      background: #fff8e1;
+      border: 1px solid #f3d27a;
+      color: #5f4700;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-top: 14px;
+    }
+    @media (max-width: 850px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Inland Vineyard Email Signature Generator</h1>
+    <p>Enter staff info, generate the signature, then copy it into Gmail or use the HTML for Apple Mail.</p>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Staff Info</h2>
+
+    <label for="name">Name</label>
+    <input id="name" value="Wira Kojongian">
+
+    <label for="title">Title</label>
+    <input id="title" value="Worship Arts Director">
+
+    <label for="phone">Phone</label>
+    <input id="phone" value="909-856-5300">
+
+    <label for="email">Email</label>
+    <input id="email" value="wirak@inlandvineyard.org">
+
+    <button class="primary" onclick="generate()">Generate Signature</button>
+
+    <div class="actions">
+      <button class="secondary" onclick="copyRendered()">Copy Signature Preview</button>
+      <button class="secondary" onclick="copyHTML()">Copy HTML</button>
+      <button class="secondary" onclick="downloadHTML()">Download HTML</button>
+    </div>
+
+    <div class="note">
+      For Gmail: click <strong>Copy Signature Preview</strong>, then paste into Gmail Settings → Signature.
+      <br><br>
+      For Apple Mail: download the HTML and use it as the signature fragment with the installer method we already built.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Preview</h2>
+    <div id="preview" class="preview-box"></div>
+    <p class="small">After copying, send a test email to Gmail and Apple Mail to confirm images and links display correctly.</p>
+
+    <h2 style="margin-top:22px;">HTML Output</h2>
+    <textarea id="htmlOutput" readonly></textarea>
+  </section>
+</main>
+
+<script>
+const LOGO = "https://inlandvineyard.github.io/ivc-signature/IVC%20New%20Logo_Vertical%20Blue.png";
+const IG_ICON = "https://inlandvineyard.github.io/ivc-signature/instagram%20icon.png";
+const YT_ICON = "https://inlandvineyard.github.io/ivc-signature/youtube%20icon.png";
+const FB_ICON = "https://inlandvineyard.github.io/ivc-signature/facebook%20icon.png";
+
+const IG_LINK = "https://www.instagram.com/inlandvineyard/";
+const YT_LINK = "https://www.youtube.com/@inlandvineyardcorona";
+const FB_LINK = "https://www.facebook.com/InlandVineyardChurch";
+
+function esc(str) {
+  return String(str || "").replace(/[&<>"']/g, function(m) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m];
+  });
+}
+
+function digits(str) {
+  return String(str || "").replace(/\D/g, "");
+}
+
+function makeSignature() {
+  const teal = "#0088a8";
+  const name = esc(document.getElementById("name").value.trim().toUpperCase());
+  const titleRaw = document.getElementById("title").value.trim().toUpperCase();
+  const title = esc(titleRaw);
+  const phone = esc(document.getElementById("phone").value.trim());
+  const phoneHref = digits(document.getElementById("phone").value);
+  const emailRaw = document.getElementById("email").value.trim();
+  const email = esc(emailRaw.toUpperCase());
+  const titleSpacing = titleRaw.length <= 22 ? "2.8px" : "2.5px";
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; max-width:620px;">
+  <tr>
+    <td valign="middle" style="padding:0 22px 0 3px; vertical-align:middle; width:205px;">
+      <a href="https://inlandvineyard.org" target="_blank" style="text-decoration:none;">
+        <img src="${LOGO}" width="178" alt="Inland Vineyard Church" style="display:block; width:178px; max-width:178px; height:auto; border:0; outline:none; text-decoration:none;">
+      </a>
+    </td>
+    <td valign="middle" style="padding:0; width:1px; vertical-align:middle; background-color:${teal};">
+      <div style="width:1px; height:150px; background-color:${teal}; font-size:0; line-height:0;">&nbsp;</div>
+    </td>
+    <td valign="middle" style="padding:0 0 0 26px; vertical-align:middle;">
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:27px; line-height:29px; font-weight:700; color:${teal}; letter-spacing:1px; text-transform:uppercase; margin:0; padding:0;">${name}</div>
+      <div style="font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:18px; font-weight:400; color:${teal}; letter-spacing:${titleSpacing}; text-transform:uppercase; margin:0 0 12px 0; padding:0;">${title}</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, Helvetica, sans-serif;">
+        <tr><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; letter-spacing:.25px; text-transform:uppercase; white-space:nowrap; padding:0 8px 0 0;">PHONE</td><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; padding:0 8px 0 0;">:</td><td style="font-size:12.5px; line-height:19px; font-weight:400; color:${teal}; letter-spacing:.25px; white-space:nowrap; padding:0;"><a href="tel:${phoneHref}" style="color:${teal}; text-decoration:none;">${phone}</a></td></tr>
+        <tr><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; letter-spacing:.25px; text-transform:uppercase; white-space:nowrap; padding:0 8px 0 0;">EMAIL</td><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; padding:0 8px 0 0;">:</td><td style="font-size:12.5px; line-height:19px; font-weight:400; color:${teal}; letter-spacing:.25px; white-space:nowrap; padding:0;"><a href="mailto:${esc(emailRaw)}" style="color:${teal}; text-decoration:none;">${email}</a></td></tr>
+        <tr><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; letter-spacing:.25px; text-transform:uppercase; white-space:nowrap; padding:0 8px 0 0;">WEBSITE</td><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; padding:0 8px 0 0;">:</td><td style="font-size:12.5px; line-height:19px; font-weight:400; color:${teal}; letter-spacing:.25px; white-space:nowrap; padding:0;"><a href="https://inlandvineyard.org" target="_blank" style="color:${teal}; text-decoration:none;">INLANDVINEYARD.ORG</a></td></tr>
+        <tr><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; letter-spacing:.25px; text-transform:uppercase; white-space:nowrap; padding:0 8px 0 0;">ADDRESS</td><td style="font-size:12.5px; line-height:19px; font-weight:700; color:${teal}; padding:0 8px 0 0;">:</td><td style="font-size:12.5px; line-height:19px; font-weight:400; color:${teal}; letter-spacing:.25px; white-space:nowrap; padding:0;">935 MCKINLEY ST. CORONA, CA 92879</td></tr>
+      </table>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin-top:12px; margin-bottom:4px;">
+        <tr>
+          <td style="padding:0 17px 0 0;"><a href="${IG_LINK}" target="_blank" style="text-decoration:none;"><img src="${IG_ICON}" width="21" alt="Instagram" style="display:block; width:21px; height:auto; border:0; outline:none;"></a></td>
+          <td style="padding:0 17px 0 0;"><a href="${YT_LINK}" target="_blank" style="text-decoration:none;"><img src="${YT_ICON}" width="23" alt="YouTube" style="display:block; width:23px; height:auto; border:0; outline:none;"></a></td>
+          <td style="padding:0;"><a href="${FB_LINK}" target="_blank" style="text-decoration:none;"><img src="${FB_ICON}" width="21" alt="Facebook" style="display:block; width:21px; height:auto; border:0; outline:none;"></a></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+}
+
+function generate() {
+  const sig = makeSignature();
+  document.getElementById("preview").innerHTML = sig;
+  document.getElementById("htmlOutput").value = sig;
+}
+
+async function copyHTML() {
+  generate();
+  await navigator.clipboard.writeText(document.getElementById("htmlOutput").value);
+  alert("HTML copied.");
+}
+
+function copyRendered() {
+  generate();
+  const preview = document.getElementById("preview");
+  const range = document.createRange();
+  range.selectNodeContents(preview);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand("copy");
+  sel.removeAllRanges();
+  alert("Signature preview copied. Paste it into Gmail signature settings.");
+}
+
+function downloadHTML() {
+  generate();
+  const full = `<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>IVC Email Signature</title></head>
+<body style="margin:20px; background:#ffffff;">
+${document.getElementById("htmlOutput").value}
+</body>
+</html>`;
+  const blob = new Blob([full], {type: "text/html"});
+  const a = document.createElement("a");
+  const staffName = document.getElementById("name").value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "staff";
+  a.href = URL.createObjectURL(blob);
+  a.download = `ivc-signature-${staffName}.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+generate();
+</script>
+</body>
+</html>
