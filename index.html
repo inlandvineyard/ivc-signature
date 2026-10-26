@@ -134,7 +134,7 @@
   <section class="card">
     <h2>Staff Info</h2>
 
-    <div class="version-note">Compact v7 — optional ministry values or custom text.</div>
+    <div class="version-note">Compact v8 — custom text fonts and alignment.</div>
 
     <label for="preset">Choose Staff Member</label>
     <select id="preset" onchange="loadPreset()">
@@ -168,6 +168,22 @@
     <label for="customText">Ministry Values / Custom Text (optional)</label>
     <textarea id="customText" rows="4" maxlength="1500" aria-describedby="customTextHelp" placeholder="Enter ministry values, a short message, or a favorite verse." style="min-height:100px; margin-top:0; font-family:Arial, Helvetica, sans-serif; font-size:14px;" oninput="generate()"></textarea>
     <p id="customTextHelp" class="small">Appears beneath the full signature. Line breaks are preserved. Leave blank to omit it. Check this field when switching staff members.</p>
+
+    <label for="valuesFont">Custom Text Font</label>
+    <select id="valuesFont" onchange="generate()">
+      <option value="arial">Arial</option><option value="verdana">Verdana</option><option value="georgia">Georgia</option><option value="times">Times New Roman</option><option value="trebuchet">Trebuchet MS</option>
+    </select>
+    <label for="valuesSize">Custom Text Size</label>
+    <select id="valuesSize" onchange="generate()"><option value="10">10 px</option><option value="11" selected>11 px</option><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="16">16 px</option></select>
+    <label for="valuesStyle">Custom Text Style</label>
+    <select id="valuesStyle" onchange="generate()"><option value="normal">Regular</option><option value="bold">Bold</option><option value="italic">Italic</option><option value="bolditalic">Bold Italic</option></select>
+    <label for="valuesColor">Custom Text Color</label>
+    <input id="valuesColor" type="color" value="#53616b" oninput="generate()" style="height:42px; padding:4px;">
+    <label for="valuesPosition">Custom Text Position</label>
+    <select id="valuesPosition" onchange="generate()"><option value="full">Below the full signature</option><option value="info">Under contact information (like Marlisa’s)</option></select>
+    <label for="valuesDivider">Line Above Custom Text</label>
+    <select id="valuesDivider" onchange="generate()"><option value="none">No line</option><option value="line">Teal line</option></select>
+    <p class="small">Font settings apply to the whole custom text block. The indented option aligns with the name and contact information.</p>
 
     <button class="primary" onclick="generate()">Generate Signature</button>
 
@@ -250,7 +266,19 @@ function makeSignature() {
   const emailRaw = document.getElementById("email").value.trim();
   const email = esc(emailRaw.toUpperCase());
   const customText = document.getElementById("customText").value.trim();
-  const customRow = customText ? `<tr><td colspan="3" style="padding:12px 0 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; color:#53616b; text-align:left; overflow-wrap:anywhere; word-break:break-word;">${esc(customText).replace(/\r\n|\r|\n/g, "<br>")}</td></tr>` : "";
+  const fonts = {arial:"Arial, Helvetica, sans-serif", verdana:"Verdana, Geneva, sans-serif", georgia:"Georgia, serif", times:"Times New Roman, Times, serif", trebuchet:"Trebuchet MS, Arial, sans-serif"};
+  const font = fonts[document.getElementById("valuesFont").value] || fonts.arial;
+  const sizeInput = Number(document.getElementById("valuesSize").value);
+  const size = [10,11,12,13,14,16].includes(sizeInput) ? sizeInput : 11;
+  const style = document.getElementById("valuesStyle").value;
+  const colorInput = document.getElementById("valuesColor").value;
+  const color = /^#[0-9a-f]{6}$/i.test(colorInput) ? colorInput : "#53616b";
+  const indent = document.getElementById("valuesPosition").value === "info";
+  const divider = document.getElementById("valuesDivider").value === "line";
+  const textBlock = `<div style="font-family:${font}; font-size:${size}px; line-height:${Math.round(size*1.45)}px; font-weight:${style.includes("bold") ? "700" : "400"}; font-style:${style.includes("italic") ? "italic" : "normal"}; color:${color}; text-align:left; overflow-wrap:anywhere; word-break:break-word;${divider ? " border-top:1px solid #0088a8; padding-top:10px;" : ""}">${esc(customText).replace(/\r\n|\r|\n/g, "<br>")}</div>`;
+  const customRow = customText ? (indent
+    ? `<tr><td colspan="2" style="padding:0;"></td><td style="padding:12px 0 0 21px;">${textBlock}</td></tr>`
+    : `<tr><td colspan="3" style="padding:12px 0 0;">${textBlock}</td></tr>`) : "";
   const titleSpacing = titleRaw.length <= 22 ? "2.4px" : "2.1px";
 
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; max-width:520px;">
