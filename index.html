@@ -120,6 +120,13 @@
     @media (max-width: 850px) {
       main { grid-template-columns: 1fr; }
     }
+    .format-toolbar {display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; align-items:center;}
+    .format-toolbar select {width:auto; max-width:175px; padding:7px; font-size:13px;}
+    .format-toolbar button {padding:7px 10px;}
+    .format-toolbar input {width:42px; height:34px; padding:3px;}
+    #customText {min-height:150px; border:1px solid #cbd5e1; border-radius:10px; padding:12px; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:1.45; color:#53616b; overflow-wrap:anywhere;}
+    #customText:focus {outline:2px solid #0088a8; outline-offset:1px;}
+    #customText p, #customText div {margin:0;}
   </style>
 </head>
 <body>
@@ -134,7 +141,7 @@
   <section class="card">
     <h2>Staff Info</h2>
 
-    <div class="version-note">Compact v8 — custom text fonts and alignment.</div>
+    <div class="version-note">Compact v9 — highlight words to customize their formatting.</div>
 
     <label for="preset">Choose Staff Member</label>
     <select id="preset" onchange="loadPreset()">
@@ -166,24 +173,24 @@
     <input id="email" value="wirak@inlandvineyard.org">
 
     <label for="customText">Ministry Values / Custom Text (optional)</label>
-    <textarea id="customText" rows="4" maxlength="1500" aria-describedby="customTextHelp" placeholder="Enter ministry values, a short message, or a favorite verse." style="min-height:100px; margin-top:0; font-family:Arial, Helvetica, sans-serif; font-size:14px;" oninput="generate()"></textarea>
-    <p id="customTextHelp" class="small">Appears beneath the full signature. Line breaks are preserved. Leave blank to omit it. Check this field when switching staff members.</p>
+    <div class="format-toolbar" role="group" aria-label="Custom text formatting">
+      <button type="button" class="secondary" onmousedown="event.preventDefault()" onclick="formatValues('bold')" aria-label="Bold"><b>B</b></button>
+      <button type="button" class="secondary" onmousedown="event.preventDefault()" onclick="formatValues('italic')" aria-label="Italic"><i>I</i></button>
+      <button type="button" class="secondary" onmousedown="event.preventDefault()" onclick="formatValues('underline')" aria-label="Underline"><u>U</u></button>
+      <select aria-label="Selected text font" onchange="formatValues('fontName',this.value)"><option value="Arial">Arial</option><option value="Verdana">Verdana</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Trebuchet MS">Trebuchet MS</option></select>
+      <select aria-label="Selected text size" onchange="formatValues('size',this.value)"><option value="10">10 px</option><option value="11" selected>11 px</option><option value="12">12 px</option><option value="14">14 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select>
+      <input aria-label="Selected text color" type="color" value="#0088a8" onchange="formatValues('foreColor',this.value)">
+      <button type="button" class="secondary" onmousedown="event.preventDefault()" onclick="formatValues('removeFormat')">Clear formatting</button>
+    </div>
+    <div id="customText" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Ministry Values / Custom Text" aria-describedby="customTextHelp" oninput="generate()"></div>
+    <p id="customTextHelp" class="small">Type your message, highlight any word or phrase, then use the toolbar. To format everything, click inside this box and press ⌘A (Mac) or Ctrl+A (Windows). Leave blank to omit.</p>
+    <p id="formatStatus" class="small" role="status" aria-live="polite"></p>
 
-    <label for="valuesFont">Custom Text Font</label>
-    <select id="valuesFont" onchange="generate()">
-      <option value="arial">Arial</option><option value="verdana">Verdana</option><option value="georgia">Georgia</option><option value="times">Times New Roman</option><option value="trebuchet">Trebuchet MS</option>
-    </select>
-    <label for="valuesSize">Custom Text Size</label>
-    <select id="valuesSize" onchange="generate()"><option value="10">10 px</option><option value="11" selected>11 px</option><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="16">16 px</option></select>
-    <label for="valuesStyle">Custom Text Style</label>
-    <select id="valuesStyle" onchange="generate()"><option value="normal">Regular</option><option value="bold">Bold</option><option value="italic">Italic</option><option value="bolditalic">Bold Italic</option></select>
-    <label for="valuesColor">Custom Text Color</label>
-    <input id="valuesColor" type="color" value="#53616b" oninput="generate()" style="height:42px; padding:4px;">
     <label for="valuesPosition">Custom Text Position</label>
-    <select id="valuesPosition" onchange="generate()"><option value="full">Below the full signature</option><option value="info">Under contact information (like Marlisa’s)</option></select>
+    <select id="valuesPosition" onchange="generate()"><option value="full">Below the full signature</option><option value="info">Under contact information</option></select>
     <label for="valuesDivider">Line Above Custom Text</label>
     <select id="valuesDivider" onchange="generate()"><option value="none">No line</option><option value="line">Teal line</option></select>
-    <p class="small">Font settings apply to the whole custom text block. The indented option aligns with the name and contact information.</p>
+    <p class="small">The indented option aligns with the name and contact information. Your formatting is included in copied and downloaded signatures.</p>
 
     <button class="primary" onclick="generate()">Generate Signature</button>
 
@@ -256,6 +263,69 @@ function digits(str) {
   return String(str || "").replace(/\D/g, "");
 }
 
+// Keep only text, simple formatting, and email-safe inline styles in exports.
+function cleanValues(root) {
+  function clean(node) {
+    if (node.nodeType === 3) return esc(node.textContent).replace(/\n/g, "<br>");
+    if (node.nodeType !== 1) return "";
+    const tag = node.tagName.toLowerCase();
+    if (["script","style","iframe","object","img","svg"].includes(tag)) return "";
+    if (tag === "br") return "<br>";
+    let styles = [];
+    for (const prop of ["font-family","font-size","font-weight","font-style","text-decoration","color"]) {
+      const value = node.style.getPropertyValue(prop);
+      if (value && !/url|expression|[<>]/i.test(value)) styles.push(prop+":"+value);
+    }
+    if (tag === "font") {
+      const face = node.getAttribute("face");
+      const color = node.getAttribute("color");
+      if (face && /^[a-z ,'-]+$/i.test(face)) styles.push("font-family:"+face);
+      if (color && /^#[0-9a-f]{3,8}$/i.test(color)) styles.push("color:"+color);
+    }
+    if (["b","strong"].includes(tag)) styles.push("font-weight:700");
+    if (["i","em"].includes(tag)) styles.push("font-style:italic");
+    if (tag === "u") styles.push("text-decoration:underline");
+    const content = Array.from(node.childNodes).map(clean).join("");
+    if (["div","p"].includes(tag)) return `<div style="margin:0;${esc(styles.join(";"))}">${content || "<br>"}</div>`;
+    return styles.length ? `<span style="${esc(styles.join(";"))}">${content}</span>` : content;
+  }
+  return Array.from(root.childNodes).map(clean).join("");
+}
+
+let valuesRange = null;
+document.addEventListener("selectionchange", () => {
+  const sel = window.getSelection();
+  const editor = document.getElementById("customText");
+  if (sel.rangeCount && editor.contains(sel.anchorNode) && editor.contains(sel.focusNode)) valuesRange = sel.getRangeAt(0).cloneRange();
+});
+function formatValues(command, value) {
+  const editor = document.getElementById("customText");
+  const status = document.getElementById("formatStatus");
+  if (!valuesRange || !editor.contains(valuesRange.commonAncestorContainer) || valuesRange.collapsed) {
+    status.textContent = "Highlight the words you want to format first.";
+    return;
+  }
+  editor.focus();
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(valuesRange);
+  document.execCommand("styleWithCSS", false, true);
+  if (command === "size") {
+    // Browser editing uses legacy sizes; normalize the temporary marker to pixels.
+    document.execCommand("styleWithCSS", false, false);
+    document.execCommand("fontSize", false, "7");
+    editor.querySelectorAll('font[size="7"]').forEach(n => { n.removeAttribute("size"); n.style.fontSize = Number(value)+"px"; });
+    document.execCommand("styleWithCSS", false, true);
+  } else document.execCommand(command, false, value || null);
+  if (sel.rangeCount) valuesRange = sel.getRangeAt(0).cloneRange();
+  status.textContent = "Formatting applied to selected text.";
+  generate();
+}
+document.getElementById("customText").addEventListener("paste", event => {
+  event.preventDefault();
+  // Paste plain text so outside email/document styles cannot alter the layout.
+  document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
+  generate();
+});
+
 function makeSignature() {
   const teal = "#0088a8";
   const name = esc(document.getElementById("name").value.trim().toUpperCase());
@@ -265,17 +335,12 @@ function makeSignature() {
   const phoneHref = digits(document.getElementById("phone").value);
   const emailRaw = document.getElementById("email").value.trim();
   const email = esc(emailRaw.toUpperCase());
-  const customText = document.getElementById("customText").value.trim();
-  const fonts = {arial:"Arial, Helvetica, sans-serif", verdana:"Verdana, Geneva, sans-serif", georgia:"Georgia, serif", times:"Times New Roman, Times, serif", trebuchet:"Trebuchet MS, Arial, sans-serif"};
-  const font = fonts[document.getElementById("valuesFont").value] || fonts.arial;
-  const sizeInput = Number(document.getElementById("valuesSize").value);
-  const size = [10,11,12,13,14,16].includes(sizeInput) ? sizeInput : 11;
-  const style = document.getElementById("valuesStyle").value;
-  const colorInput = document.getElementById("valuesColor").value;
-  const color = /^#[0-9a-f]{6}$/i.test(colorInput) ? colorInput : "#53616b";
+  const editor = document.getElementById("customText");
+  const customText = editor.textContent.trim();
+  const customHTML = cleanValues(editor);
   const indent = document.getElementById("valuesPosition").value === "info";
   const divider = document.getElementById("valuesDivider").value === "line";
-  const textBlock = `<div style="font-family:${font}; font-size:${size}px; line-height:${Math.round(size*1.45)}px; font-weight:${style.includes("bold") ? "700" : "400"}; font-style:${style.includes("italic") ? "italic" : "normal"}; color:${color}; text-align:left; overflow-wrap:anywhere; word-break:break-word;${divider ? " border-top:1px solid #0088a8; padding-top:10px;" : ""}">${esc(customText).replace(/\r\n|\r|\n/g, "<br>")}</div>`;
+  const textBlock = `<div style="font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:1.45; color:#53616b; text-align:left; overflow-wrap:anywhere; word-break:break-word;${divider ? " border-top:1px solid #0088a8; padding-top:10px;" : ""}">${customHTML}</div>`;
   const customRow = customText ? (indent
     ? `<tr><td colspan="2" style="padding:0;"></td><td style="padding:12px 0 0 21px;">${textBlock}</td></tr>`
     : `<tr><td colspan="3" style="padding:12px 0 0;">${textBlock}</td></tr>`) : "";
