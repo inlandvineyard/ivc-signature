@@ -134,7 +134,7 @@
   <section class="card">
     <h2>Staff Info</h2>
 
-    <div class="version-note">Compact v6 — smaller and less visually imposing in email threads.</div>
+    <div class="version-note">Compact v7 — optional ministry values or custom text.</div>
 
     <label for="preset">Choose Staff Member</label>
     <select id="preset" onchange="loadPreset()">
@@ -164,6 +164,10 @@
 
     <label for="email">Email</label>
     <input id="email" value="wirak@inlandvineyard.org">
+
+    <label for="customText">Ministry Values / Custom Text (optional)</label>
+    <textarea id="customText" rows="4" maxlength="1500" aria-describedby="customTextHelp" placeholder="Enter ministry values, a short message, or a favorite verse." style="min-height:100px; margin-top:0; font-family:Arial, Helvetica, sans-serif; font-size:14px;" oninput="generate()"></textarea>
+    <p id="customTextHelp" class="small">Appears beneath the full signature. Line breaks are preserved. Leave blank to omit it. Check this field when switching staff members.</p>
 
     <button class="primary" onclick="generate()">Generate Signature</button>
 
@@ -245,6 +249,8 @@ function makeSignature() {
   const phoneHref = digits(document.getElementById("phone").value);
   const emailRaw = document.getElementById("email").value.trim();
   const email = esc(emailRaw.toUpperCase());
+  const customText = document.getElementById("customText").value.trim();
+  const customRow = customText ? `<tr><td colspan="3" style="padding:12px 0 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; color:#53616b; text-align:left; overflow-wrap:anywhere; word-break:break-word;">${esc(customText).replace(/\r\n|\r|\n/g, "<br>")}</td></tr>` : "";
   const titleSpacing = titleRaw.length <= 22 ? "2.4px" : "2.1px";
 
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; max-width:520px;">
@@ -275,6 +281,7 @@ function makeSignature() {
       </table>
     </td>
   </tr>
+  ${customRow}
 </table>`;
 }
 
